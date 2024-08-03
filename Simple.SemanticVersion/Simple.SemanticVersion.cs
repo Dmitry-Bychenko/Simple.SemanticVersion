@@ -14,395 +14,357 @@ public sealed class SemanticVersion :
     ISpanParsable<SemanticVersion>,
     IEquatable<SemanticVersion?>,
     IComparable<SemanticVersion?>,
-    ISpanFormattable
-{
-    #region Private Fields and Properties 
+    ISpanFormattable {
+  #region Private Fields and Properties 
 
-    public static readonly IReadOnlyList<string> KnownPrefixes = [
-        "v.",
+  public static readonly IReadOnlyList<string> KnownPrefixes = [
+      "v.",
         "ver.",
         "version.",
     ];
 
-    #endregion Private Fields and Properties 
+  #endregion Private Fields and Properties 
 
-    #region Public Properties
+  #region Public Properties
 
-    public static SemanticVersion None { get; } = new();
+  public static SemanticVersion None { get; } = new();
 
-    public IReadOnlyList<string> Release { get; private init; } = [];
+  public IReadOnlyList<string> Release { get; private init; } = [];
 
-    public IReadOnlyList<string> PreRelease { get; private init; } = [];
+  public IReadOnlyList<string> PreRelease { get; private init; } = [];
 
-    public string Metadata { get; private init; } = string.Empty;
+  public string Metadata { get; private init; } = string.Empty;
 
-    public string Major => Release.Count > 0 ? Release[0] : "0";
+  public string Major => Release.Count > 0 ? Release[0] : "0";
 
-    public string Minor => Release.Count > 1 ? Release[1] : "0";
+  public string Minor => Release.Count > 1 ? Release[1] : "0";
 
-    public string Patch => Release.Count > 2 ? Release[2] : "0";
+  public string Patch => Release.Count > 2 ? Release[2] : "0";
 
-    public ReleaseKind Kind
-    {
-        get
-        {
-            if (PreRelease.Count <= 0)
-                return ReleaseKind.Release;
+  public ReleaseKind Kind {
+    get {
+      if (PreRelease.Count <= 0)
+        return ReleaseKind.Release;
 
-            var text = PreRelease[0];
+      var text = PreRelease[0];
 
-            if (text.Contains("rc", StringComparison.OrdinalIgnoreCase) ||
-                text.Contains("candidate", StringComparison.OrdinalIgnoreCase) ||
-                text.Contains("releasecandidate", StringComparison.OrdinalIgnoreCase))
-                return ReleaseKind.ReleaseCandidate;
+      if (text.Contains("rc", StringComparison.OrdinalIgnoreCase) ||
+          text.Contains("candidate", StringComparison.OrdinalIgnoreCase) ||
+          text.Contains("releasecandidate", StringComparison.OrdinalIgnoreCase))
+        return ReleaseKind.ReleaseCandidate;
 
-            if (text.Contains("beta", StringComparison.OrdinalIgnoreCase))
-               return ReleaseKind.Beta;
+      if (text.Contains("beta", StringComparison.OrdinalIgnoreCase))
+        return ReleaseKind.Beta;
 
-            if (text.Contains("alpha", StringComparison.OrdinalIgnoreCase))
-                return ReleaseKind.Alpha;
+      if (text.Contains("alpha", StringComparison.OrdinalIgnoreCase))
+        return ReleaseKind.Alpha;
 
-            return ReleaseKind.Unknown;
-        }
+      return ReleaseKind.Unknown;
     }
+  }
 
-    public bool IsWellFormed => Release.Count <= 3 &&
-                                Release.All(item => item.All(c => c is >= '0' and <= '9')) &&
-                                PreRelease.All(item =>
-                                    item.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'z' or >= 'A' and <= 'Z')) &&
-                                Metadata.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'z' or >= 'A' and <= 'Z');
-    
-    #endregion Public Properties
+  public bool IsWellFormed => Release.Count <= 3 &&
+                              Release.All(item => item.All(c => c is >= '0' and <= '9')) &&
+                              PreRelease.All(item =>
+                                  item.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'z' or >= 'A' and <= 'Z')) &&
+                              Metadata.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'z' or >= 'A' and <= 'Z');
 
-    #region Create
+  #endregion Public Properties
 
-    private SemanticVersion()
-    {
-    }
+  #region Create
 
-    public SemanticVersion(long major) : this()
-    {
-        ArgumentOutOfRangeException.ThrowIfNegative(major);
+  private SemanticVersion() {
+  }
 
-        Release = CompressList([
-            major.ToString(CultureInfo.InvariantCulture)
-        ]);
-    }
+  public SemanticVersion(long major) : this() {
+    ArgumentOutOfRangeException.ThrowIfNegative(major);
 
-    public SemanticVersion(long major, long minor) : this()
-    {
-        ArgumentOutOfRangeException.ThrowIfNegative(major);
-        ArgumentOutOfRangeException.ThrowIfNegative(minor);
+    Release = CompressList([
+        major.ToString(CultureInfo.InvariantCulture)
+    ]);
+  }
 
-        Release = CompressList([
-            major.ToString(CultureInfo.InvariantCulture),
+  public SemanticVersion(long major, long minor) : this() {
+    ArgumentOutOfRangeException.ThrowIfNegative(major);
+    ArgumentOutOfRangeException.ThrowIfNegative(minor);
+
+    Release = CompressList([
+        major.ToString(CultureInfo.InvariantCulture),
             minor.ToString(CultureInfo.InvariantCulture)
-        ]);
-    }
+    ]);
+  }
 
-    public SemanticVersion(long major, long minor, long patch) : this()
-    {
-        ArgumentOutOfRangeException.ThrowIfNegative(major);
-        ArgumentOutOfRangeException.ThrowIfNegative(minor);
-        ArgumentOutOfRangeException.ThrowIfNegative(patch);
+  public SemanticVersion(long major, long minor, long patch) : this() {
+    ArgumentOutOfRangeException.ThrowIfNegative(major);
+    ArgumentOutOfRangeException.ThrowIfNegative(minor);
+    ArgumentOutOfRangeException.ThrowIfNegative(patch);
 
-        Release = CompressList([
-            major.ToString(CultureInfo.InvariantCulture),
+    Release = CompressList([
+        major.ToString(CultureInfo.InvariantCulture),
             minor.ToString(CultureInfo.InvariantCulture),
             patch.ToString(CultureInfo.InvariantCulture)
-        ]);
-    }
+    ]);
+  }
 
-    public SemanticVersion(long major, long minor, long patch, long build) : this()
-    {
-        ArgumentOutOfRangeException.ThrowIfNegative(major);
-        ArgumentOutOfRangeException.ThrowIfNegative(minor);
-        ArgumentOutOfRangeException.ThrowIfNegative(patch);
-        ArgumentOutOfRangeException.ThrowIfNegative(build);
+  public SemanticVersion(long major, long minor, long patch, long build) : this() {
+    ArgumentOutOfRangeException.ThrowIfNegative(major);
+    ArgumentOutOfRangeException.ThrowIfNegative(minor);
+    ArgumentOutOfRangeException.ThrowIfNegative(patch);
+    ArgumentOutOfRangeException.ThrowIfNegative(build);
 
-        Release = CompressList([
-            major.ToString(CultureInfo.InvariantCulture),
+    Release = CompressList([
+        major.ToString(CultureInfo.InvariantCulture),
             minor.ToString(CultureInfo.InvariantCulture),
             patch.ToString(CultureInfo.InvariantCulture),
             build.ToString(CultureInfo.InvariantCulture)
-        ]);
-    }
+    ]);
+  }
 
-    public SemanticVersion(IEnumerable<string?> release, IEnumerable<string?>? preRelease = default, string? metadata = default)
-    {
-        ArgumentNullException.ThrowIfNull(release);
+  public SemanticVersion(IEnumerable<string?> release, IEnumerable<string?>? preRelease = default, string? metadata = default) {
+    ArgumentNullException.ThrowIfNull(release);
 
-        Release = CompressList(release
+    Release = CompressList(release
+        .Select(item => item ?? string.Empty)
+        .Select(item => TrimItem(item.AsSpan()))
+        .ToList());
+
+    PreRelease = preRelease is null
+        ? []
+        : CompressList(preRelease
             .Select(item => item ?? string.Empty)
             .Select(item => TrimItem(item.AsSpan()))
             .ToList());
 
-        PreRelease = preRelease is null 
-            ? [] 
-            : CompressList(preRelease
-                .Select(item => item ?? string.Empty)
-                .Select(item => TrimItem(item.AsSpan()))
-                .ToList());
+    Metadata = string.IsNullOrWhiteSpace(metadata)
+        ? string.Empty
+        : metadata.Trim();
+  }
 
-        Metadata = string.IsNullOrWhiteSpace(metadata) 
-            ? string.Empty 
-            : metadata.Trim();
-    }
+  public SemanticVersion(Version version) : this() {
+    ArgumentNullException.ThrowIfNull(version);
 
-    public SemanticVersion(Version version) : this()
-    {
-        ArgumentNullException.ThrowIfNull(version);
-
-        Release = CompressList([
-            Math.Clamp(version.Major, 0, int.MaxValue).ToString(CultureInfo.InvariantCulture),
+    Release = CompressList([
+        Math.Clamp(version.Major, 0, int.MaxValue).ToString(CultureInfo.InvariantCulture),
             Math.Clamp(version.Minor, 0, int.MaxValue).ToString(CultureInfo.InvariantCulture),
             Math.Clamp(version.Build, 0, int.MaxValue).ToString(CultureInfo.InvariantCulture),
             Math.Clamp(version.Revision, 0, int.MaxValue).ToString(CultureInfo.InvariantCulture)
-        ]);
+    ]);
+  }
+
+  #endregion Create
+
+  #region Operators
+
+  #region Comparison
+
+  public static bool operator ==(SemanticVersion left, SemanticVersion right) => SemanticVersionComparer.Default.Compare(left, right) == 0;
+
+  public static bool operator !=(SemanticVersion left, SemanticVersion right) => SemanticVersionComparer.Default.Compare(left, right) != 0;
+
+  public static bool operator >=(SemanticVersion left, SemanticVersion right) => SemanticVersionComparer.Default.Compare(left, right) >= 0;
+
+  public static bool operator <=(SemanticVersion left, SemanticVersion right) => SemanticVersionComparer.Default.Compare(left, right) <= 0;
+
+  public static bool operator >(SemanticVersion left, SemanticVersion right) => SemanticVersionComparer.Default.Compare(left, right) > 0;
+
+  public static bool operator <(SemanticVersion left, SemanticVersion right) => SemanticVersionComparer.Default.Compare(left, right) < 0;
+
+  #endregion Comparison
+
+  #region Cast
+
+  public static implicit operator SemanticVersion(Version? version) {
+    return version is null
+        ? None
+        : new SemanticVersion(version);
+  }
+
+  #endregion Cast
+
+  #endregion Operators
+
+  #region ISpanParsable<SemanticVersion>
+
+  public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, [MaybeNullWhen(false)] out SemanticVersion result) {
+    result = None;
+
+    s = RemovePrefixes(s).Trim();
+
+    if (s.Length == 0) {
+      return false;
     }
 
-    #endregion Create
+    List<string> release = [];
+    List<string> preRelease = [];
+    List<string> list = release;
 
-    #region Operators
+    var metadata = string.Empty;
 
-    #region Comparison
+    for (int i = 0, left = 0; i <= s.Length; ++i) {
+      if (i == s.Length) {
+        list.Add(TrimItem(s[left..i]));
+      }
+      else if (s[i] == '-' && ReferenceEquals(list, release)) {
+        list.Add(TrimItem(s[left..i]));
 
-    public static bool operator ==(SemanticVersion left, SemanticVersion right) => SemanticVersionComparer.Default.Compare(left, right) == 0;
+        list = preRelease;
 
-    public static bool operator !=(SemanticVersion left, SemanticVersion right) => SemanticVersionComparer.Default.Compare(left, right) != 0;
+        left = i + 1;
+      }
+      else if (s[i] == '+') {
+        list.Add(TrimItem(s[left..i]));
+        metadata = s[(i + 1)..].Trim().ToString();
 
-    public static bool operator >=(SemanticVersion left, SemanticVersion right) => SemanticVersionComparer.Default.Compare(left, right) >= 0;
+        break;
+      }
+      else if (s[i] == '.') {
+        list.Add(TrimItem(s[left..i]));
 
-    public static bool operator <=(SemanticVersion left, SemanticVersion right) => SemanticVersionComparer.Default.Compare(left, right) <= 0;
-
-    public static bool operator >(SemanticVersion left, SemanticVersion right) => SemanticVersionComparer.Default.Compare(left, right) > 0;
-
-    public static bool operator <(SemanticVersion left, SemanticVersion right) => SemanticVersionComparer.Default.Compare(left, right) < 0;
-
-    #endregion Comparison
-
-    #region Cast
-
-    public static implicit operator SemanticVersion(Version? version)
-    {
-        return version is null
-            ? None
-            : new SemanticVersion(version);
+        left = i + 1;
+      }
     }
 
-    #endregion Cast
+    result = new SemanticVersion {
+      Release = CompressList(release),
+      PreRelease = CompressList(preRelease),
+      Metadata = metadata.Trim()
+    };
 
-    #endregion Operators
+    return true;
+  }
 
-    #region ISpanParsable<SemanticVersion>
+  public static bool TryParse(ReadOnlySpan<char> s, [MaybeNullWhen(false)] out SemanticVersion result) =>
+      TryParse(s, default, out result);
 
-    public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, [MaybeNullWhen(false)] out SemanticVersion result)
-    {
-        result = None;
+  public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, [MaybeNullWhen(false)] out SemanticVersion result) {
+    return TryParse(s.AsSpan(), provider, out result);
+  }
 
-        s = RemovePrefixes(s).Trim();
+  public static bool TryParse([NotNullWhen(true)] string? s, [MaybeNullWhen(false)] out SemanticVersion result) =>
+      TryParse(s, default, out result);
 
-        if (s.Length == 0)
-        {
-            return false;
-        }
+  public static SemanticVersion Parse(ReadOnlySpan<char> s, IFormatProvider? provider = default) {
+    return TryParse(s, provider, out var result)
+        ? result
+        : throw new FormatException("Not a valid semantic version");
+  }
 
-        List<string> release = [];
-        List<string> preRelease = [];
-        List<string> list = release;
+  public static SemanticVersion Parse(string? s, IFormatProvider? provider = default) {
+    return TryParse(s, provider, out var result)
+        ? result
+        : throw new FormatException("Not a valid semantic version");
+  }
 
-        var metadata = string.Empty;
+  #endregion ISpanParsable<SemanticVersion>
 
-        for (int i = 0, left = 0; i <= s.Length; ++i)
-        {
-            if (i == s.Length)
-            {
-                list.Add(TrimItem(s[left .. i]));
-            }
-            else if (s[i] == '-' && ReferenceEquals(list, release))
-            {
-                list.Add(TrimItem(s[left..i]));
+  #region IEquatable<SemanticVersion>
 
-                list = preRelease;
+  public bool Equals(SemanticVersion? other) => SemanticVersionComparer.Default.Equals(this, other);
 
-                left = i + 1;
-            }
-            else if (s[i] == '+')
-            {
-                list.Add(TrimItem(s[left..i]));
-                metadata = s[(i + 1)..].Trim().ToString();
+  public override bool Equals(object? obj) => Equals(obj as SemanticVersion);
 
-                break;
-            }
-            else if (s[i] == '.')
-            {
-                list.Add(TrimItem(s[left..i]));
+  public override int GetHashCode() {
+    return SemanticVersionComparer.Default.GetHashCode(this);
+  }
 
-                left = i + 1;
-            }
-        }
+  #endregion IEquatable<SemanticVersion>
 
-        result = new SemanticVersion
-        {
-            Release = CompressList(release),
-            PreRelease = CompressList(preRelease),
-            Metadata = metadata.Trim()
-        };
+  #region IComparable<SemanticVersion>
 
-        return true;
+  public int CompareTo(SemanticVersion? other) => SemanticVersionComparer.Default.Compare(this, other);
+
+  #endregion IComparable<SemanticVersion>
+
+  #region ISpanFormattable
+
+  public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider = default) {
+    var result = ToString(format.ToString(), provider);
+
+    if (result.Length > destination.Length) {
+      charsWritten = 0;
+
+      return false;
     }
 
-    public static bool TryParse(ReadOnlySpan<char> s, [MaybeNullWhen(false)] out SemanticVersion result) =>
-        TryParse(s, default, out result);
+    result.CopyTo(destination);
 
-    public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, [MaybeNullWhen(false)] out SemanticVersion result)
-    {
-        return TryParse(s.AsSpan(), provider, out result);
+    charsWritten = result.Length;
+
+    return true;
+  }
+
+  public string ToString(string? format, IFormatProvider? formatProvider = default) {
+    format = string.IsNullOrWhiteSpace(format) ? "RPM" : format;
+
+    StringBuilder sb = new();
+
+    if (format.Contains('R', StringComparison.OrdinalIgnoreCase)) {
+      sb.Append(Release.Count switch {
+        0 => "0.0.0",
+        1 => $"{Release[0]}.0.0",
+        2 => $"{Release[0]}.{Release[1]}.0",
+        _ => string.Join(".", Release)
+      });
     }
 
-    public static bool TryParse([NotNullWhen(true)] string? s, [MaybeNullWhen(false)] out SemanticVersion result) =>
-        TryParse(s, default, out result);
+    if (format.Contains('P', StringComparison.OrdinalIgnoreCase) && PreRelease.Count > 0) {
+      if (sb.Length > 0)
+        sb.Append('-');
 
-    public static SemanticVersion Parse(ReadOnlySpan<char> s, IFormatProvider? provider = default)
-    {
-        return TryParse(s, provider, out var result)
-            ? result
-            : throw new FormatException("Not a valid semantic version");
+      sb.Append(string.Join(".", PreRelease));
     }
 
-    public static SemanticVersion Parse(string? s, IFormatProvider? provider = default)
-    {
-        return TryParse(s, provider, out var result)
-            ? result
-            : throw new FormatException("Not a valid semantic version");
+    if (format.Contains('M', StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(Metadata)) {
+      if (sb.Length > 0)
+        sb.Append('+');
+
+      sb.Append(Metadata);
     }
 
-    #endregion ISpanParsable<SemanticVersion>
+    return sb.ToString();
+  }
 
-    #region IEquatable<SemanticVersion>
+  public override string ToString() {
+    return ToString(default);
+  }
 
-    public bool Equals(SemanticVersion? other) => SemanticVersionComparer.Default.Equals(this, other);
+  #endregion ISpanFormattable
 
-    public override bool Equals(object? obj) => Equals(obj as SemanticVersion);
+  #region Private Methods
 
-    public override int GetHashCode()
-    {
-        return SemanticVersionComparer.Default.GetHashCode(this);
+  private static string TrimItem(ReadOnlySpan<char> value) {
+    var text = value.Trim().ToString();
+
+    if (text.Length > 0 && text.All(c => c is >= '0' and <= '9')) {
+      text = text.TrimStart('0').Trim();
+
+      return string.IsNullOrEmpty(text) ? "0" : text;
     }
 
-    #endregion IEquatable<SemanticVersion>
+    return text;
+  }
 
-    #region IComparable<SemanticVersion>
+  private static List<string> CompressList(List<string> list) {
+    for (var i = list.Count - 1; i >= 0; --i) {
+      if (!"0".Equals(list[i]) && !string.IsNullOrEmpty(list[i])) {
+        list.RemoveRange(i + 1, list.Count - i - 1);
 
-    public int CompareTo(SemanticVersion? other) => SemanticVersionComparer.Default.Compare(this, other);
-
-    #endregion IComparable<SemanticVersion>
-
-    #region ISpanFormattable
-
-    public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider = default)
-    {
-        var result = ToString(format.ToString(), provider);
-
-        if (result.Length > destination.Length)
-        {
-            charsWritten = 0;
-
-            return false;
-        }
-
-        result.CopyTo(destination);
-
-        charsWritten = result.Length;
-
-        return true;
+        return list;
+      }
     }
 
-    public string ToString(string? format, IFormatProvider? formatProvider = default)
-    {
-        format = string.IsNullOrWhiteSpace(format) ? "RPM" : format;
+    return [];
+  }
 
-        StringBuilder sb = new();
-
-        if (format.Contains('R', StringComparison.OrdinalIgnoreCase))
-        {
-            sb.Append(Release.Count switch {
-                0 => "0.0.0",
-                1 => $"{Release[0]}.0.0",
-                2 => $"{Release[0]}.{Release[1]}.0",
-                _ => string.Join(".", Release)
-            });
-        }
-
-        if (format.Contains('P', StringComparison.OrdinalIgnoreCase) && PreRelease.Count > 0)
-        {
-            if (sb.Length > 0)
-                sb.Append('-');
-
-            sb.Append(string.Join(".", PreRelease));
-        }
-
-        if (format.Contains('M', StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(Metadata))
-        {
-            if (sb.Length > 0)
-              sb.Append('+');
-
-            sb.Append(Metadata);
-        }
-
-        return sb.ToString();
+  private static ReadOnlySpan<char> RemovePrefixes(ReadOnlySpan<char> text) {
+    foreach (var prefix in KnownPrefixes) {
+      if (text.StartsWith(prefix) && text.Length > prefix.Length && char.IsWhiteSpace(text[prefix.Length])) {
+        return text[..prefix.Length];
+      }
     }
 
-    public override string ToString()
-    {
-        return ToString(default);
-    }
+    return text;
+  }
 
-    #endregion ISpanFormattable
-
-    #region Private Methods
-
-    private static string TrimItem(ReadOnlySpan<char> value)
-    {
-        var text = value.Trim().ToString();
-
-        if (text.Length > 0 && text.All(c => c is >= '0' and <= '9'))
-        {
-            text = text.TrimStart('0').Trim();
-
-            return string.IsNullOrEmpty(text) ? "0" : text;
-        }
-
-        return text;
-    }
-
-    private static List<string> CompressList(List<string> list)
-    {
-        for (var i = list.Count - 1; i >= 0; --i)
-        {
-            if (!"0".Equals(list[i]) && !string.IsNullOrEmpty(list[i]))
-            {
-                list.RemoveRange(i + 1, list.Count - i - 1);
-
-                return list;
-            }
-        }
-
-        return [];
-    }
-
-    private static ReadOnlySpan<char> RemovePrefixes(ReadOnlySpan<char> text)
-    {
-        foreach (var prefix in KnownPrefixes)
-        {
-            if (text.StartsWith(prefix) && text.Length > prefix.Length && char.IsWhiteSpace(text[prefix.Length]))
-            {
-                return text[.. prefix.Length];
-            }
-        }
-
-        return text;
-    }
-
-    #endregion Private Methods
+  #endregion Private Methods
 }

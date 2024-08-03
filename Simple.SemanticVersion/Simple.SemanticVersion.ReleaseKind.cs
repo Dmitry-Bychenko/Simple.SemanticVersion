@@ -1,14 +1,13 @@
 ﻿namespace Simple.SemanticVersion;
 
-public enum ReleaseKind
-{
-    Release = 0,
+public enum ReleaseKind {
+  Release = 0,
 
-    ReleaseCandidate = 1,
+  ReleaseCandidate = 1,
 
-    Beta = 2,
+  Beta = 2,
 
-    Alpha = 3,
+  Alpha = 3,
 
-    Unknown = 1000
+  Unknown = 1000
 }
